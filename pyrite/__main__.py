@@ -1,6 +1,5 @@
 """This module acts as the entry point for running the application."""
 
-import tkinter as tk
 from tkinter import ttk
 from ttkthemes import ThemedTk
 
