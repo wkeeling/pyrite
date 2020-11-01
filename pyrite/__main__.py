@@ -1,11 +1,16 @@
 """This module acts as the entry point for running the application."""
 
-
 import tkinter as tk
+from tkinter import ttk
+from ttkthemes import ThemedTk
 
 
 def main():
-    root = tk.Tk()
+    root = ThemedTk(theme='equilux')
+    label = ttk.Label(master=root, text='Hello')
+    label.pack()
+    ttk.Button(root, text="Quit", command=root.destroy).pack()
+
     root.mainloop()
 
 
