@@ -1,1 +1,3 @@
 tab_size: 4
+# dark and light themes supported
+theme: dark

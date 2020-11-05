@@ -1,5 +1,5 @@
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, mock_open, patch
 
 import pytest
 
@@ -49,14 +49,27 @@ class TestSave:
             yield mock_yaml
 
     def test_save(self, yaml):
+        m = mock_open()
         with patch('pyrite.config.settings.settings', new=Settings()) as mock_settings:
-            mock_settings.update({'test_attr': 'yes'})
+            with patch('pyrite.config.settings.open', m):
+                mock_settings.update({'test_attr': 'yes'})
 
+                settings.save()
+
+                m.assert_called_once_with(Path('~', SETTINGS_FILENAME).expanduser(), 'wt')
+                yaml.dump.assert_called_once_with(settings, m())
+
+    def test_invokes_listeners(self):
+        mock = Mock()
+        settings.on_save(mock.listener1)
+        settings.on_save(mock.listener2)
+        m = mock_open()
+
+        with patch('pyrite.config.settings.open', m):
             settings.save()
 
-            yaml.dump.assert_called_once_with(
-                settings, Path('~', SETTINGS_FILENAME).expanduser()
-            )
+        mock.listener1.assert_called_once_with()
+        mock.listener2.assert_called_once_with()
 
 
 class TestGetters:
@@ -72,53 +85,53 @@ class TestGetters:
         with patch('pyrite.config.settings.log') as mock_log:
             yield mock_log
 
-    def test_get_boolean(self, yaml):
+    def test_getboolean(self, yaml):
         yaml.load.side_effect = [
             {'test_bool': True}, {}
         ]
         settings.initialise()
 
-        assert settings.get_boolean('test_bool') is True
+        assert settings.getboolean('test_bool') is True
 
-    def test_get_boolean_invalid(self, yaml, log):
+    def test_getboolean_invalid(self, yaml, log):
         yaml.load.side_effect = [
             {'test_bool': True}, {'test_bool': 'foo'}
         ]
         settings.initialise()
 
-        assert settings.get_boolean('test_bool') is True
+        assert settings.getboolean('test_bool') is True
         log.warning.assert_called()
 
-    def test_get_int(self, yaml):
+    def test_getint(self, yaml):
         yaml.load.side_effect = [
             {'test_int': 5}, {}
         ]
         settings.initialise()
 
-        assert settings.get_int('test_int') == 5
+        assert settings.getint('test_int') == 5
 
-    def test_get_int_invalid(self, yaml, log):
+    def test_getint_invalid(self, yaml, log):
         yaml.load.side_effect = [
             {'test_int': 5}, {'test_int': 'foo'}
         ]
         settings.initialise()
 
-        assert settings.get_int('test_int') == 5
+        assert settings.getint('test_int') == 5
         log.warning.assert_called()
 
-    def test_get_float(self, yaml):
+    def test_getfloat(self, yaml):
         yaml.load.side_effect = [
             {'test_float': 5.0}, {}
         ]
         settings.initialise()
 
-        assert settings.get_float('test_float') == 5.0
+        assert settings.getfloat('test_float') == 5.0
 
-    def test_get_float_invalid(self, yaml, log):
+    def test_getfloat_invalid(self, yaml, log):
         yaml.load.side_effect = [
             {'test_float': 5.0}, {'test_float': 'foo'}
         ]
         settings.initialise()
 
-        assert settings.get_float('test_float') == 5.0
+        assert settings.getfloat('test_float') == 5.0
         log.warning.assert_called()

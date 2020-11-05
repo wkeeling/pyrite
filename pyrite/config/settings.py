@@ -1,10 +1,9 @@
 """Functionality for manipulating application settings."""
 import logging
+from collections import UserDict
 from io import BytesIO
-from collections import defaultdict, UserDict
 from pathlib import Path
 from pkgutil import get_data
-from typing import List
 
 import yaml
 
@@ -21,18 +20,16 @@ class Settings(UserDict):
     home folder. Call the `initialise()` method to load the settings.
 
     Clients can register listeners (callables) when they want to be informed of
-    changes to particular settings.
+    changes to the settings.
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.default_settings: dict = {}
 
-        # Setting listeners are held in a list against a setting name.
-        # When that setting changes, all listeners are notified with the
-        # new value.
-        self.listeners: dict = defaultdict(List[callable])
+        # Settings listeners
+        self.listeners: list = []
 
     def initialise(self):
         """Load the settings applying any user overrides."""
@@ -43,7 +40,7 @@ class Settings(UserDict):
         settings_path = Path('~', SETTINGS_FILENAME).expanduser()
 
         if settings_path.exists():
-            user_settings = yaml.load(settings_path.read_bytes())
+            user_settings = yaml.load(settings_path.read_bytes(), Loader=yaml.SafeLoader)
         else:
             user_settings = {}
 
@@ -54,7 +51,7 @@ class Settings(UserDict):
             # Write out the user settings file on first load
             self.save()
 
-    def get_boolean(self, name: str) -> bool:
+    def getboolean(self, name: str) -> bool:
         """Convenience method for retrieving a boolean value.
 
         If the value is not a boolean value (invalid), then the default
@@ -73,7 +70,7 @@ class Settings(UserDict):
 
         return self.default_settings[name]
 
-    def get_int(self, name: str) -> int:
+    def getint(self, name: str) -> int:
         """Convenience method for retrieving an integer value.
 
         If the value is not a integer value (invalid), then the default
@@ -92,7 +89,7 @@ class Settings(UserDict):
 
         return self.default_settings[name]
 
-    def get_float(self, name: str) -> float:
+    def getfloat(self, name: str) -> float:
         """Convenience method for retrieving a float value.
 
         If the value is not a float value (invalid), then the default
@@ -111,26 +108,25 @@ class Settings(UserDict):
 
         return self.default_settings[name]
 
-    def __setitem__(self, key, value):
-        existing = self.data.get(key)
-        if value != existing:
-            for listener in self.listeners.get(key, []):
-                listener(value)
-        super().__setitem__(key, value)
-
-    def save(self):
-        """Save the settings to the user's home folder."""
-        settings_path = Path('~', SETTINGS_FILENAME).expanduser()
-        yaml.dump(self.data, settings_path)
-
-    def add_listener(self, name: str, listener: callable):
-        """Add a setting listener.
+    def on_save(self, listener: callable):
+        """Add a listener to be invoked on settings save.
 
         Args:
-            name: The name of the setting to listen for changes.
-            listener: A callable that will receive the new setting value.
+            listener: A no-args callable.
         """
-        self.listeners[name].append(listener)
+        self.listeners.append(listener)
+
+    def save(self):
+        """Save the settings to the user's home folder.
+
+        Any registered listeners are invoked after the save has completed.
+        """
+        settings_path = Path('~', SETTINGS_FILENAME).expanduser()
+        with open(settings_path, 'wt') as out:
+            yaml.dump(self.data, out)
+
+        for listener in self.listeners:
+            listener()
 
 
 settings: Settings = Settings()
