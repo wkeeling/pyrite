@@ -48,14 +48,14 @@ def initialise():
 
 
 def get_boolean(name: str) -> bool:
-        val = settings[name]
+    val = settings[name]
 
-        if val is True or val is False:
-            return val
+    if val is True or val is False:
+        return val
 
-        log.warning(f'Invalid boolean value: {val}')
+    log.warning(f'Invalid boolean value: {val}')
 
-        return default_settings[name]
+    return default_settings[name]
 
 
 def get_int(name: str) -> int:
