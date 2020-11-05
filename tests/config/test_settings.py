@@ -40,6 +40,15 @@ class TestInitialise:
         assert settings['tab_size'] == 2
         assert save.call_count == 0
 
+    def test_initialise_empty_user_settings(self, yaml, save):
+        yaml.load.side_effect = [
+            {'tab_size': 4}, None
+        ]
+        settings.initialise()
+
+        assert settings['tab_size'] == 4
+        save.assert_called_once_with()
+
 
 class TestSave:
 

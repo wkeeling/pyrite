@@ -40,7 +40,7 @@ class Settings(UserDict):
         settings_path = Path('~', SETTINGS_FILENAME).expanduser()
 
         if settings_path.exists():
-            user_settings = yaml.load(settings_path.read_bytes(), Loader=yaml.SafeLoader)
+            user_settings = yaml.load(settings_path.read_bytes(), Loader=yaml.SafeLoader) or {}
         else:
             user_settings = {}
 
