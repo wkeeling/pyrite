@@ -15,7 +15,7 @@ THEMES = dict(
 
 def run():
     root = ThemedTk(theme=settings['theme'])
-    settings.add_listener('theme', lambda v: root.set_theme(THEMES[v]))
+    settings.on_save(lambda v: root.set_theme(THEMES[v]))
     label = ttk.Label(master=root, text='Hello')
     label.pack()
     ttk.Button(root, text="Quit", command=root.destroy).pack()
