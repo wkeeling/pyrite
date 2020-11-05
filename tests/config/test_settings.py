@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from pyrite.config import settings
+from pyrite.config.settings import SETTINGS_FILENAME, Settings, settings
 
 
 class TestInitialise:
@@ -16,11 +16,11 @@ class TestInitialise:
 
     @pytest.fixture
     def save(self):
-        with patch('pyrite.config.settings.save') as mock_save:
+        with patch('pyrite.config.settings.settings.save') as mock_save:
             yield mock_save
 
     def test_not_initialised(self):
-        assert len(settings.settings) == 0
+        assert len(settings) == 0
 
     def test_initialise_no_user_settings(self, yaml, save):
         yaml.load.side_effect = [
@@ -28,7 +28,7 @@ class TestInitialise:
         ]
         settings.initialise()
 
-        assert settings.settings['tab_size'] == 4
+        assert settings['tab_size'] == 4
         save.assert_called_once_with()
 
     def test_initialise_with_user_settings(self, yaml, save):
@@ -37,7 +37,7 @@ class TestInitialise:
         ]
         settings.initialise()
 
-        assert settings.settings['tab_size'] == 2
+        assert settings['tab_size'] == 2
         assert save.call_count == 0
 
 
@@ -49,13 +49,13 @@ class TestSave:
             yield mock_yaml
 
     def test_save(self, yaml):
-        with patch('pyrite.config.settings.settings', new=dict()) as mock_settings:
+        with patch('pyrite.config.settings.settings', new=Settings()) as mock_settings:
             mock_settings.update({'test_attr': 'yes'})
 
             settings.save()
 
             yaml.dump.assert_called_once_with(
-                settings.settings, Path('~', settings.SETTINGS_FILENAME).expanduser()
+                settings, Path('~', SETTINGS_FILENAME).expanduser()
             )
 
 
