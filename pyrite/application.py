@@ -14,7 +14,7 @@ THEMES = dict(
 
 
 def run():
-    root = ThemedTk(theme=settings['theme'])
+    root = ThemedTk(theme=THEMES[settings['theme']])
     settings.on_save(lambda v: root.set_theme(THEMES[v]))
     label = ttk.Label(master=root, text='Hello')
     label.pack()
