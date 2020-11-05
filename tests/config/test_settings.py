@@ -49,13 +49,14 @@ class TestSave:
             yield mock_yaml
 
     def test_save(self, yaml):
-        settings.settings = {'test_attr: yes'}
+        with patch('pyrite.config.settings.settings', new=dict()) as mock_settings:
+            mock_settings.update({'test_attr': 'yes'})
 
-        settings.save()
+            settings.save()
 
-        yaml.dump.assert_called_once_with(
-            settings.settings, Path('~', settings.SETTINGS_FILENAME).expanduser()
-        )
+            yaml.dump.assert_called_once_with(
+                settings.settings, Path('~', settings.SETTINGS_FILENAME).expanduser()
+            )
 
 
 class TestGetters:
