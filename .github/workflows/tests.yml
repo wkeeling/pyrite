@@ -24,3 +24,6 @@ jobs:
         run: pytest
         env:
           PYTHONPATH: .
+
+      - name: Lint code base with flake8
+        run: flake8
