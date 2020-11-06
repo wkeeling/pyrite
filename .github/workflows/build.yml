@@ -1,9 +1,9 @@
-name: Python Tests
+name: Build Pyrite
 on: push
 
 jobs:
-  test:
-    name: Run Python tests
+  setup:
+    name: Setup
     runs-on: ubuntu-latest
 
     steps:
@@ -20,10 +20,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+  test:
+    needs: setup
+    name: Run tests
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Run tests with pytest
         run: pytest
         env:
           PYTHONPATH: .
 
+  lint:
+    needs: setup
+    name: Lint code
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Lint code base with flake8
         run: flake8
