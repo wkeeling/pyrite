@@ -1,11 +1,12 @@
 import logging
 import platform
 import tkinter as tk
-from tkinter import ttk
 
 from ttkthemes import ThemedTk
 
-from pyrite import settings, theme
+from pyrite import settings
+from pyrite.ui import theme
+from pyrite.ui.editor import Editor
 
 
 log = logging.getLogger(__name__)
@@ -28,10 +29,7 @@ class MainWindow(ThemedTk):
 
         self._createmenus()
 
-        notebook = ttk.Notebook(master=self)
-        tab1 = ttk.Frame(notebook)
-        notebook.add(tab1, text='Tab One')
-        notebook.pack(expand=True, fill='both')
+        self.editor = Editor(master=self, on_tab_change=lambda x: print(x))
 
     def show(self):
         self.mainloop()
@@ -50,6 +48,12 @@ class MainWindow(ThemedTk):
         menubar.add_cascade(label='File', menu=filemenu)
 
         self.config(menu=menubar)
+
+
+class FileMenu(tk.Menu):
+
+    def __init__(self, menubar: tk.Menu):
+        super().__init__(master=menubar, tearoff=False)
 
 
 def run():

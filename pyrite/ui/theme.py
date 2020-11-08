@@ -10,8 +10,14 @@ dark = {
         'activeborderwidth': 0,
         'fg': '#a6a6a6',
         'bg': '#464646',
-        'activebackground': '#1762d3',
+        'activebackground': '#2367ce',
         'activeforeground': '#a6a6a6',
+    },
+    'documentconfig': {
+        'relief': tk.FLAT,
+        'borderwidth': 2,
+        'bg': '#2b2b2b',
+        'fg': '#a6a6a6',
     }
 }
 
@@ -22,7 +28,7 @@ light = {
         'activeborderwidth': 0,
         'fg': '#a6a6a6',
         'bg': '#464646',
-        'activebackground': '#1762d3',
+        'activebackground': '#2367ce',
         'activeforeground': '#a6a6a6',
     }
 }
