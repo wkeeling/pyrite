@@ -22,7 +22,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
     ],
-    description="A lightweight text editor written in Python using Tkinter",
+    description="A lightweight text editor",
     install_requires=['ttkthemes>=3.1.1'],
     license="MIT",
     long_description=readme + '\n\n' + history,

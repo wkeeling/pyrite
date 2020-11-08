@@ -1,10 +1,11 @@
 """This module acts as the entry point for running the application."""
-from pyrite import application, settings
+from pyrite import settings
+from pyrite.ui import app
 
 
 def main():
     settings.initialise()
-    application.run()
+    app.run()
 
 
 if __name__ == '__main__':
