@@ -1,11 +1,9 @@
 import logging
-import platform
 
 from ttkthemes import ThemedTk
 
 from pyrite import settings
 from pyrite.ui import editor, menu, theme
-
 
 log = logging.getLogger(__name__)
 
@@ -16,10 +14,7 @@ class MainWindow(ThemedTk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if platform == 'Windows':
-            self.attributes('-fullscreen', True)
-        else:
-            self.attributes('-zoomed', True)
+        self.geometry('1024x768+100+100')
 
         self.set_theme(theme.current()['ttktheme'])
 
