@@ -17,7 +17,7 @@ class Settings(UserDict):
 
     The application ships with default settings that can be overridden on a per-user
     basis. Per-user settings are stored in the file .pyrite.settings in a user's
-    home folder. Call the `initialise()` method to load the settings.
+    home folder. Call the `initialise()` method to load the settings from disk.
 
     Clients can register listeners (callables) when they want to be informed of
     changes to the settings.
@@ -37,11 +37,11 @@ class Settings(UserDict):
             BytesIO(get_data(__package__, '.pyrite.defaults')), Loader=yaml.SafeLoader
         ))
 
-        settings_path = Path('~', SETTINGS_FILENAME).expanduser()
-
-        if settings_path.exists():
-            user_settings = yaml.load(settings_path.read_bytes(), Loader=yaml.SafeLoader) or {}
-        else:
+        try:
+            user_settings = yaml.load(
+                Path('~', SETTINGS_FILENAME).expanduser().read_bytes(), Loader=yaml.SafeLoader
+            ) or {}
+        except FileNotFoundError:
             user_settings = {}
 
         self.data.update(self.default_settings)
@@ -121,8 +121,7 @@ class Settings(UserDict):
 
         Any registered listeners are invoked after the save has completed.
         """
-        settings_path = Path('~', SETTINGS_FILENAME).expanduser()
-        with open(settings_path, 'wt') as out:
+        with open(Path('~', SETTINGS_FILENAME).expanduser(), 'wt') as out:
             yaml.dump(self.data, out)
 
         for listener in self.listeners:
