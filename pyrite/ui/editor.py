@@ -11,7 +11,7 @@ class Editor(ttk.Notebook):
 
     new_document_name = 'Untitled'
 
-    def __init__(self, master: tk.Tk, on_tab_change: callable):
+    def __init__(self, master: tk.Widget, on_tab_change: callable):
         super().__init__(master=master)
 
         self.documents = []
@@ -23,7 +23,7 @@ class Editor(ttk.Notebook):
     def new(self):
         tab = ttk.Frame(self)
         doc = Document(master=tab, on_cursor=lambda: None, on_change=lambda: None)
-        doc.pack(expand=True, fill='both')
+        doc.pack(expand=True, fill=tk.BOTH)
         self.add(tab, text=doc.name or self.new_document_name)
         self.documents.append(doc)
 
@@ -47,7 +47,7 @@ class Document(tk.Frame):
 
         self._content = tk.Text(master=self)
         self._content.config(**theme.current()['documentconfig'])
-        self._content.pack(expand=True, fill='both')
+        self._content.pack(expand=True, fill=tk.BOTH)
 
     @property
     def name(self) -> Optional[str]:
@@ -77,5 +77,5 @@ def create(master: tk.Widget) -> Editor:
     Returns: The Editor instance.
     """
     editor = Editor(master=master, on_tab_change=lambda x: print(x))
-    editor.pack(expand=True, fill='both')
+    editor.pack(expand=True, fill=tk.BOTH)
     return editor
