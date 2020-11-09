@@ -2,7 +2,6 @@ import tkinter as tk
 
 from pyrite import settings
 
-
 dark = {
     'ttktheme': 'equilux',
     'menuconfig': {
@@ -10,8 +9,8 @@ dark = {
         'activeborderwidth': 0,
         'fg': '#a6a6a6',
         'bg': '#464646',
-        'activebackground': '#2367ce',
         'activeforeground': '#a6a6a6',
+        'activebackground': '#2367ce',
     },
     'documentconfig': {
         'relief': tk.FLAT,
@@ -26,10 +25,6 @@ light = {
     'menuconfig': {
         'relief': tk.FLAT,
         'activeborderwidth': 0,
-        'fg': '#a6a6a6',
-        'bg': '#464646',
-        'activebackground': '#2367ce',
-        'activeforeground': '#a6a6a6',
     }
 }
 
