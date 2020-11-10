@@ -39,7 +39,10 @@ class State(UserDict):
     def save(self):
         """Save the current state to disk."""
 
-        with open(Path('~', STATE_DIRECTORY, STATE_FILENAME).expanduser(), 'wb') as f:
+        state_path = Path('~', STATE_DIRECTORY, STATE_FILENAME).expanduser()
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(state_path, 'wb') as f:
             pickle.dump(self.data, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
