@@ -14,7 +14,8 @@ class MainWindow(ThemedTk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.geometry('1024x768+100+100')
+        # Todo: use x=100 position here
+        self.geometry('1024x768+500+100')
 
         self.set_theme(theme.current()['ttktheme'])
 

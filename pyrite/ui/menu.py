@@ -1,6 +1,8 @@
 import tkinter as tk
+from pathlib import Path
 from tkinter import filedialog
 
+from pyrite import state
 from pyrite.ui import theme
 
 
@@ -21,15 +23,18 @@ class FileMenu(tk.Menu):
 
         self.config(**theme.current()['menuconfig'])
         self.add_command(label='New...', underline=0, command=self.destroy)
-        self.add_command(label='Open...', underline=0, command=self.open)
+        self.add_command(label='Open...', underline=0, command=self._open)
         self.add_separator()
         self.add_command(label='Exit', underline=1, command=self.destroy)
 
-    def open(self):
+    def _open(self):
         filename = tk.filedialog.askopenfilename(
-            initialdir='/',
+            initialdir=state.get('last_open_loc', '/'),
             title='Open',
             filetypes=(('all files', '*.*'),)
         )
 
         self.editor.open(filename, 'utf-8')
+
+        state['last_open_loc'] = Path(filename).parent
+        state.save()
