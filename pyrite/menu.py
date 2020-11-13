@@ -2,8 +2,7 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog
 
-from pyrite import state
-from pyrite.ui import theme
+from pyrite import state, theme
 
 
 def create(master: tk.Widget, editor):

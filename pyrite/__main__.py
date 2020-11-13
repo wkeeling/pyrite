@@ -1,6 +1,5 @@
 """This module acts as the entry point for running the application."""
-from pyrite import settings, state
-from pyrite.ui import app
+from pyrite import app, settings, state
 
 
 def main():

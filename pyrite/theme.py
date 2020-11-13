@@ -15,8 +15,10 @@ dark = {
     'documentconfig': {
         'relief': tk.FLAT,
         'borderwidth': 2,
-        'bg': '#2b2b2b',
         'fg': '#a6a6a6',
+        'bg': '#2b2b2b',
+        'selectforeground': '#a6a6a6',
+        'selectbackground': '#1a4991',
     }
 }
 

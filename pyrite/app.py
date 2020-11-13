@@ -2,8 +2,7 @@ import logging
 
 from ttkthemes import ThemedTk
 
-from pyrite import settings
-from pyrite.ui import editor, menu, theme
+from pyrite import editor, menu, settings, theme
 
 log = logging.getLogger(__name__)
 

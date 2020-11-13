@@ -3,8 +3,7 @@ from pathlib import Path
 from tkinter import ttk
 from typing import Optional, Tuple
 
-from pyrite import settings
-from pyrite.ui import theme
+from pyrite import settings, theme
 
 
 class Editor(ttk.Notebook):
@@ -62,53 +61,12 @@ class Document(tk.Frame):
         self._content.config(**theme.current()['documentconfig'])
         self._content.pack(expand=True, fill=tk.BOTH)
 
-        with open('/home/will/Documents/ca.key', 'rt') as f:
+        with open('/home/will/Documents/cv_case_studies.txt', 'rt') as f:
             self._content.insert(tk.END, f.read())
 
         self._content.focus()
 
-        start_line, start_col = None, None
-
-        def mousemove(event):
-            nonlocal start_line
-            nonlocal start_col
-            self._content.tag_remove('sel', '0.0', tk.END)
-            cur_line, cur_col = self._index_as_tuple(f'@{event.x},{event.y}')
-
-            if start_line is None:
-                start_line, start_col = cur_line, cur_col
-            else:
-                lines_moved = abs(cur_line - start_line)
-                cols_moved = abs(cur_col - start_col)
-
-                for line_offset in range(lines_moved + 1):
-                    sel_start = f'{min(start_line, cur_line)}.{min(start_col, cur_col)}'
-                    line_start = self._index_as_tuple(f'{sel_start}+{line_offset}l')
-                    line_end = min(
-                        self._index_as_tuple(f'{sel_start}+{line_offset}l lineend'),
-                        self._index_as_tuple(f'{sel_start}+{line_offset}l+{cols_moved}c')
-                    )
-
-                    print(
-                        'sel',
-                        '{}.{}'.format(*line_start), '{}.{}'.format(*line_end)
-                    )
-                    self._content.tag_add(
-                        'sel',
-                        '{}.{}'.format(*line_start),
-                        '{}.{}'.format(*line_end)
-                    )
-
-                print(self._content.tag_ranges('sel'))
-
-        def clear(_):
-            nonlocal start_line
-            nonlocal start_col
-            start_line = None
-            start_col = None
-
-        self._content.bind('<ButtonRelease-2>', clear)
-        self._content.bind('<B2-Motion>', mousemove)
+        BlockSelection(self._content)
 
     @property
     def name(self) -> Optional[str]:
@@ -130,8 +88,63 @@ class Document(tk.Frame):
     def length(self) -> int:
         return len(self.content)
 
-    def _index_as_tuple(self, index: str) -> Tuple[int, ...]:
-        return tuple(map(int, self._content.index(index).split('.')))
+
+class BlockSelection:
+    """Used to handle block-select (column-select) within a text widget."""
+
+    def __init__(self, text: tk.Text):
+        self.text = text
+        # These track the starting position of a block selection
+        self.start_line = None
+        self.start_col = None
+        # Whether the control key is pressed
+        self.ctrl = False
+
+        # Configure how block select is activated/deactivated
+        self.text.bind('<Control-1>', self.ctrl_on)
+        self.text.bind('<B1-Motion>', self.mouse_b1_motion)
+        self.text.bind('<ButtonRelease-1>', self.mouse_release)
+        self.text.bind('<B2-Motion>', self.mouse_motion)
+        self.text.bind('<ButtonRelease-2>', self.mouse_release)
+
+    def mouse_b1_motion(self, event):
+        if self.ctrl:
+            return self.mouse_motion(event)
+
+    def mouse_motion(self, event):
+        self.text.tag_remove('sel', '0.0', tk.END)
+        cur_line, cur_col = self.index_as_tuple(f'@{event.x},{event.y}')
+
+        if self.start_line is None:
+            self.start_line, self.start_col = cur_line, cur_col
+        else:
+            lines_moved = abs(cur_line - self.start_line)
+            cols_moved = abs(cur_col - self.start_col)
+
+            for line_offset in range(lines_moved + 1):
+                sel_start = f'{min(self.start_line, cur_line)}.{min(self.start_col, cur_col)}'
+                line_start = self.index_as_tuple(f'{sel_start}+{line_offset}l')
+                line_end = min(
+                    self.index_as_tuple(f'{sel_start}+{line_offset}l lineend'),
+                    self.index_as_tuple(f'{sel_start}+{line_offset}l+{cols_moved}c')
+                )
+
+                self.text.tag_add('sel', '{}.{}'.format(*line_start), '{}.{}'.format(*line_end))
+
+        return 'break'
+
+    def ctrl_on(self, event):
+        self.ctrl = True
+
+    def mouse_release(self, event):
+        self.start_line = None
+        self.start_col = None
+        self.ctrl = False
+        return 'break'
+
+    def index_as_tuple(self, index: str) -> Tuple[int, ...]:
+        """Take an index in the form '12.23' and convert to a tuple of two integers."""
+        return tuple(map(int, self.text.index(index).split('.')))
 
 
 def create(master: tk.Widget) -> Editor:
