@@ -66,7 +66,7 @@ class Document(tk.Frame):
 
         self._content.focus()
 
-        BlockSelection(self._content)
+        EnableBlockSelection(self._content)
 
     @property
     def name(self) -> Optional[str]:
@@ -89,52 +89,102 @@ class Document(tk.Frame):
         return len(self.content)
 
 
-class BlockSelection:
+class EnableBlockSelection:
     """Used to handle block-select (column-select) within a text widget."""
 
     def __init__(self, text: tk.Text):
         self.text = text
+
         # These track the starting position of a block selection
         self.start_line = None
         self.start_col = None
+
         # Whether the control key is pressed
         self.ctrl = False
 
+        # Whether tha alt key is pressed
+        self.alt = False
+
+        # Whether the shift key is pressed
+        self.shift = False
+
         # Configure how block select is activated/deactivated
+        # Mouse control
         self.text.bind('<Control-1>', self.ctrl_on)
         self.text.bind('<B1-Motion>', self.mouse_b1_motion)
         self.text.bind('<ButtonRelease-1>', self.mouse_release)
         self.text.bind('<B2-Motion>', self.mouse_motion)
         self.text.bind('<ButtonRelease-2>', self.mouse_release)
+        # Keyboard control
+        self.text.bind('<Alt_L>', self.alt_on)
+        self.text.bind('<KeyRelease-Alt_L>', self.alt_off)
+        self.text.bind('<Shift_L>', self.shift_on)
+        self.text.bind('<KeyRelease-Shift_L>', self.shift_off)
+        self.text.bind('<Left>', self.arrowkey_motion)
+        self.text.bind('<Right>', self.arrowkey_motion)
+        self.text.bind('<Up>', self.arrowkey_motion)
+        self.text.bind('<Down>', self.arrowkey_motion)
 
     def mouse_b1_motion(self, event):
         if self.ctrl:
             return self.mouse_motion(event)
 
     def mouse_motion(self, event):
-        self.text.tag_remove('sel', '0.0', tk.END)
-        cur_line, cur_col = self.index_as_tuple(f'@{event.x},{event.y}')
+        mouse_index = f'@{event.x},{event.y}'
 
-        if self.start_line is None:
-            self.start_line, self.start_col = cur_line, cur_col
-        else:
-            lines_moved = abs(cur_line - self.start_line)
-            cols_moved = abs(cur_col - self.start_col)
+        if not self.start_line and not self.start_col:
+            self.start_line, self.start_col = self.index_as_tuple(mouse_index)
 
-            for line_offset in range(lines_moved + 1):
-                sel_start = f'{min(self.start_line, cur_line)}.{min(self.start_col, cur_col)}'
-                line_start = self.index_as_tuple(f'{sel_start}+{line_offset}l')
-                line_end = min(
-                    self.index_as_tuple(f'{sel_start}+{line_offset}l lineend'),
-                    self.index_as_tuple(f'{sel_start}+{line_offset}l+{cols_moved}c')
-                )
-
-                self.text.tag_add('sel', '{}.{}'.format(*line_start), '{}.{}'.format(*line_end))
+        self.update_selection(mouse_index)
 
         return 'break'
 
+    def arrowkey_motion(self, event):
+        if self.alt and self.shift:
+            self.update_selection(tk.INSERT)
+            # self.text.tag_add(tk.SEL, '1.1', '1')
+
+    def update_selection(self, index):
+        self.text.tag_remove(tk.SEL, '0.0', tk.END)
+        cur_line, cur_col = self.index_as_tuple(index)
+
+        lines_moved = abs(cur_line - self.start_line)
+        cols_moved = abs(cur_col - self.start_col)
+
+        for line_offset in range(lines_moved + 1):  # +1 to allow the last line to be selected
+            sel_start = f'{min(self.start_line, cur_line)}.{min(self.start_col, cur_col)}'
+            line_start = self.index_as_tuple(f'{sel_start}+{line_offset}l')
+            line_end = min(
+                self.index_as_tuple(f'{sel_start}+{line_offset}l lineend'),
+                self.index_as_tuple(f'{sel_start}+{line_offset}l+{cols_moved}c')
+            )
+
+            print(tk.SEL, '{}.{}'.format(*line_start), '{}.{}'.format(*line_end))
+            self.text.tag_add(tk.SEL, '{}.{}'.format(*line_start), '{}.{}'.format(*line_end))
+
     def ctrl_on(self, event):
         self.ctrl = True
+
+    def alt_on(self, event):
+        print('alt on')
+        self.start_line, self.start_col = self.index_as_tuple(tk.INSERT)
+        self.alt = True
+
+    def alt_off(self, event):
+        print('alt off')
+        self.start_line = None
+        self.start_col = None
+        self.alt = False
+
+    def shift_on(self, event):
+        print('shift on')
+        self.shift = True
+
+    def shift_off(self, event):
+        print('shift off')
+        self.start_line = None
+        self.start_col = None
+        self.shift = False
 
     def mouse_release(self, event):
         self.start_line = None
