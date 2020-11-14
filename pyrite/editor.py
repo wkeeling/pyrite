@@ -167,6 +167,7 @@ class EnableBlockSelection:
             print(tk.SEL, f'{sel_start}', f'{sel_end}')
 
             self.text.tag_add(tk.SEL, f'{sel_start}', f'{sel_end}')
+            self.text.mark_set(tk.INSERT, index)
 
     def ctrl_on(self, event):
         self.ctrl = True
