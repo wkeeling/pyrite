@@ -121,6 +121,8 @@ class EnableBlockSelection:
         self.text.bind('<KeyRelease-Up>', self.arrowkey_motion)
         self.text.bind('<KeyRelease-Down>', self.arrowkey_motion)
 
+        self.text.bind('sel', )
+
     def mouse_b1_motion(self, event):
         if self.ctrl:
             return self.mouse_motion(event)
@@ -156,22 +158,21 @@ class EnableBlockSelection:
         for line_offset in range(lines_moved + 1):  # +1 to allow the last line to be selected
 
             # The block selection is implemented by layering multiple single line selections
-            sel_start = self.index_as_tuple(f'{top_left}+{line_offset}l')
-            sel_end = min(
+            sel_start = '{}.{}'.format(*self.index_as_tuple(f'{top_left}+{line_offset}l'))
+            sel_end = '{}.{}'.format(*min(
                 self.index_as_tuple(f'{top_left}+{line_offset}l lineend'),
                 self.index_as_tuple(f'{top_left}+{line_offset}l+{cols_moved}c')
-            )
+            ))
 
-            print(tk.SEL, '{}.{}'.format(*sel_start), '{}.{}'.format(*sel_end))
-            self.text.tag_add(tk.SEL, '{}.{}'.format(*sel_start), '{}.{}'.format(*sel_end))
+            print(tk.SEL, f'{sel_start}', f'{sel_end}')
+
+            self.text.tag_add(tk.SEL, f'{sel_start}', f'{sel_end}')
 
     def ctrl_on(self, event):
         self.ctrl = True
 
     def alt_on(self, event):
         self.alt = True
-        self.text.config(blockcursor=True)
-        self.text.config(insertwidth=40)
         self.start_line, self.start_col = self.index_as_tuple(tk.INSERT)
 
     def alt_off(self, event):
