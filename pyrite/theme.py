@@ -19,6 +19,7 @@ dark = {
         'bg': '#2b2b2b',
         'selectforeground': '#a6a6a6',
         'selectbackground': '#1a4991',
+        'insertbackground': '#ffffff'
     }
 }
 
