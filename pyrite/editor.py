@@ -66,7 +66,8 @@ class Document(tk.Frame):
 
         self._content.focus()
 
-        EnableBlockSelection(self._content)
+        # EnableBlockSelection(self._content)
+        ColumnEdit(self._content)
 
     @property
     def name(self) -> Optional[str]:
@@ -89,7 +90,124 @@ class Document(tk.Frame):
         return len(self.content)
 
 
-class EnableBlockSelection:
+class ColumnEdit:
+    """Use to handle column editing within a text widget."""
+
+    def __init__(self, text: tk.Text):
+        self.text = text
+        self.enabled = False
+
+        # The starting line of a column selection
+        self.start_line = None
+
+        # Whether the alt key is pressed
+        self.alt = False
+
+        # TODO: externalise these to configure_column_edit()
+        self.text.bind('<Alt_L>', self.alt_on)
+        self.text.bind('<KeyRelease-Alt_L>', self.alt_off)
+        self.text.bind('<Up>', self.up)
+        self.text.bind('<Down>', self.down)
+        self.text.bind('<Left>', self.left)
+        self.text.bind('<Right>', self.right)
+        self.text.bind('<KeyRelease-Up>', self.up_)
+        self.text.bind('<KeyRelease-Down>', self.down_)
+        self.text.bind('<KeyRelease-Left>', self.left_)
+        self.text.bind('<KeyRelease-Right>', self.right_)
+        self.text.bind('<ButtonRelease>', self.disable)
+        self.text.bind('<Escape>', self.disable)
+
+    def mouse_motion(self, event):
+        if self.alt or self.start_index:
+            mouse_index = f'@{event.x},{event.y}'
+            self.update(mouse_index)
+
+            return 'break'
+
+    def up(self, event):
+        index = '{}-1l'.format(tk.INSERT)
+        return self.arrowkey_motion(index)
+
+    def down(self, event):
+        index = '{}+1l'.format(tk.INSERT)
+        return self.arrowkey_motion(index)
+
+    def left(self, event):
+        index = '{}-1c'.format(tk.INSERT)
+        return self.arrowkey_motion(index)
+
+    def right(self, event):
+        index = '{}+1c'.format(tk.INSERT)
+        return self.arrowkey_motion(index)
+
+    def up_(self, event):
+        index = '{}'.format(tk.INSERT)
+        return self.arrowkey_motion(index)
+
+    def down_(self, event):
+        index = '{}'.format(tk.INSERT)
+        return self.arrowkey_motion(index)
+
+    def left_(self, event):
+        index = '{}'.format(tk.INSERT)
+        return self.arrowkey_motion(index)
+
+    def right_(self, event):
+        index = '{}'.format(tk.INSERT)
+        return self.arrowkey_motion(index)
+
+    def arrowkey_motion(self, index):
+        if self.alt or self.enabled:
+            self.enabled = True
+            self.text.config(blockcursor=True)
+            self.update(index)
+
+    def update(self, index):
+        # Configure the column highlight
+        self.text.tag_remove('colhighlight', '0.0', tk.END)
+        self.text.mark_unset('colhighlight')
+        self.text.tag_config(
+            'colhighlight',
+            background=theme.current()['documentconfig']['insertbackground'],
+            bgstipple='gray25'
+        )
+
+        current_index = self.index_as_tuple(index)
+        lines_moved = current_index[0] - self.start_line
+
+        # We start at the lowest line number and highlight down the page
+        start_from = min(self.start_line, current_index[0])
+
+        for i in range(abs(lines_moved)):
+            # Don't try and highlight beyond the end of a line
+            index = '{}.{}'.format(*min(
+                self.index_as_tuple(f'{start_from + i}.{current_index[1]}'),
+                self.index_as_tuple(f'{start_from + i}.{current_index[1]} lineend'),
+            ))
+
+            self.text.tag_add('colhighlight', index)
+            self.text.mark_set('colhighlight', index)
+
+    def alt_on(self, event):
+        self.alt = True
+        self.start_line = self.index_as_tuple(tk.INSERT)[0]
+
+    def alt_off(self, event):
+        self.alt = False
+
+    def disable(self, event):
+        self.enabled = False
+        self.alt = False
+        self.text.mark_unset('colhighlight')
+        self.text.tag_delete('colhighlight')
+        self.text.config(blockcursor=False)
+
+    def index_as_tuple(self, index: str) -> Tuple[int, ...]:
+        """Take an index in the form '12.23' and convert to a tuple of two integers."""
+        return tuple(map(int, self.text.index(index).split('.')))
+
+
+class ConfigureBlockSelection:
     """Used to handle block-select (column-select) within a text widget."""
 
     def __init__(self, text: tk.Text):
@@ -102,7 +220,7 @@ class EnableBlockSelection:
         # Whether the control key is pressed
         self.ctrl = False
 
-        # Whether tha alt key is pressed
+        # Whether the alt key is pressed
         self.alt = False
 
         # Configure how block select is activated/deactivated
@@ -145,7 +263,7 @@ class EnableBlockSelection:
         # Clear any previous selection
         self.text.tag_remove(tk.SEL, '0.0', tk.END)
 
-        # Discover the current index of the mouse/insertion cursor
+        # Get the current index of the mouse/insertion cursor
         cur_line, cur_col = self.index_as_tuple(index)
 
         # Find the distance between the mouse/insertion cursor and the start point
