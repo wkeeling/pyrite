@@ -54,20 +54,19 @@ class Document(tk.Frame):
 
         self.filename: str = None
 
-        self._content = tk.Text(
+        self.text = tk.Text(
             master=self,
             wrap=tk.WORD if settings.getboolean('word_wrap') else tk.NONE,
         )
-        self._content.config(**theme.current()['documentconfig'])
-        self._content.pack(expand=True, fill=tk.BOTH)
+        self.text.config(**theme.current()['documentconfig'])
+        self.text.pack(expand=True, fill=tk.BOTH)
 
         with open('/home/will/Documents/cv_case_studies.txt', 'rt') as f:
-            self._content.insert(tk.END, f.read())
+            self.text.insert(tk.END, f.read())
 
-        self._content.focus()
+        self.text.focus()
 
-        # EnableBlockSelection(self._content)
-        ColumnEdit(self._content)
+        self.configure_column_edit()
 
     @property
     def name(self) -> Optional[str]:
@@ -78,20 +77,45 @@ class Document(tk.Frame):
 
     @property
     def content(self) -> str:
-        return self._content.get(1.0, 'end-1c')
+        return self.text.get(1.0, 'end-1c')
 
     @content.setter
     def content(self, content: str):
-        self._content.insert(tk.END, content)
-        self._content.tag_configure('start', background='black', foreground='white')
+        self.text.insert(tk.END, content)
+        self.text.tag_configure('start', background='black', foreground='white')
 
     @property
     def length(self) -> int:
         return len(self.content)
 
+    def configure_column_edit(self):
+        column_edit = ColumnEdit(self.text)
+
+        # Configure the key bindings for column edit
+        self.text.bind('<Alt_L>', column_edit.alt_on)
+        self.text.bind('<KeyRelease-Alt_L>', column_edit.alt_off)
+        self.text.bind('<Up>', lambda e: column_edit.key_motion('{}-1l'.format(tk.INSERT)))
+        self.text.bind('<Down>', lambda e: column_edit.key_motion('{}+1l'.format(tk.INSERT)))
+        self.text.bind('<Left>', lambda e: column_edit.key_motion('{}-1c'.format(tk.INSERT)))
+        self.text.bind('<Right>', lambda e: column_edit.key_motion('{}+1c'.format(tk.INSERT)))
+        self.text.bind('<KeyRelease-Up>', lambda e: column_edit.key_motion(tk.INSERT))
+        self.text.bind('<KeyRelease-Down>', lambda e: column_edit.key_motion(tk.INSERT))
+        self.text.bind('<KeyRelease-Left>', lambda e: column_edit.key_motion(tk.INSERT))
+        self.text.bind('<KeyRelease-Right>', lambda e: column_edit.key_motion(tk.INSERT))
+        self.text.bind('<KeyRelease-Home>', lambda e: column_edit.key_motion(tk.INSERT))
+        self.text.bind('<KeyRelease-End>', lambda e: column_edit.key_motion(tk.INSERT))
+        self.text.bind('<KeyRelease-Next>', lambda e: column_edit.key_motion(tk.INSERT))
+        self.text.bind('<KeyRelease-Prior>', lambda e: column_edit.key_motion(tk.INSERT))
+        self.text.bind('<ButtonRelease-1>', column_edit.disable)
+        self.text.bind('<ButtonRelease-2>', column_edit.disable)
+        self.text.bind('<ButtonRelease-3>', column_edit.disable)
+        self.text.bind('<Escape>', column_edit.disable)
+
 
 class ColumnEdit:
     """Use to handle column editing within a text widget."""
+    
+    HIGHLIGHTNAME = 'colhighlight'
 
     def __init__(self, text: tk.Text):
         self.text = text
@@ -103,90 +127,62 @@ class ColumnEdit:
         # Whether the alt key is pressed
         self.alt = False
 
-        # TODO: externalise these to configure_column_edit()
-        self.text.bind('<Alt_L>', self.alt_on)
-        self.text.bind('<KeyRelease-Alt_L>', self.alt_off)
-        self.text.bind('<Up>', self.up)
-        self.text.bind('<Down>', self.down)
-        self.text.bind('<Left>', self.left)
-        self.text.bind('<Right>', self.right)
-        self.text.bind('<KeyRelease-Up>', self.up_)
-        self.text.bind('<KeyRelease-Down>', self.down_)
-        self.text.bind('<KeyRelease-Left>', self.left_)
-        self.text.bind('<KeyRelease-Right>', self.right_)
-        self.text.bind('<ButtonRelease>', self.disable)
-        self.text.bind('<Escape>', self.disable)
-
     def mouse_motion(self, event):
-        if self.alt or self.start_index:
+        # TODO: do we need mouse control for column edit?
+        if self.alt or self.enabled:
             mouse_index = f'@{event.x},{event.y}'
             self.update(mouse_index)
 
             return 'break'
 
-    def up(self, event):
-        index = '{}-1l'.format(tk.INSERT)
-        return self.arrowkey_motion(index)
-
-    def down(self, event):
-        index = '{}+1l'.format(tk.INSERT)
-        return self.arrowkey_motion(index)
-
-    def left(self, event):
-        index = '{}-1c'.format(tk.INSERT)
-        return self.arrowkey_motion(index)
-
-    def right(self, event):
-        index = '{}+1c'.format(tk.INSERT)
-        return self.arrowkey_motion(index)
-
-    def up_(self, event):
-        index = '{}'.format(tk.INSERT)
-        return self.arrowkey_motion(index)
-
-    def down_(self, event):
-        index = '{}'.format(tk.INSERT)
-        return self.arrowkey_motion(index)
-
-    def left_(self, event):
-        index = '{}'.format(tk.INSERT)
-        return self.arrowkey_motion(index)
-
-    def right_(self, event):
-        index = '{}'.format(tk.INSERT)
-        return self.arrowkey_motion(index)
-
-    def arrowkey_motion(self, index):
+    def key_motion(self, index: str):
+        """Move the cursor to the specified index via a key press.
+        
+        Args:
+            index: An index in the format 'line.col'
+        """
         if self.alt or self.enabled:
             self.enabled = True
             self.text.config(blockcursor=True)
             self.update(index)
 
-    def update(self, index):
+    def update(self, index: str):
+        """Update the text widget to display the column highlight.
+        
+        Args:
+            index: An index in the format 'line.col'
+        """
         # Configure the column highlight
-        self.text.tag_remove('colhighlight', '0.0', tk.END)
-        self.text.mark_unset('colhighlight')
+        self.text.tag_remove(self.HIGHLIGHTNAME, '0.0', tk.END)
+        self.text.mark_unset(self.HIGHLIGHTNAME)
         self.text.tag_config(
-            'colhighlight',
+            self.HIGHLIGHTNAME,
             background=theme.current()['documentconfig']['insertbackground'],
-            bgstipple='gray25'
+            bgstipple='gray50'
         )
 
         current_index = self.index_as_tuple(index)
         lines_moved = current_index[0] - self.start_line
 
-        # We start at the lowest line number and highlight down the page
-        start_from = min(self.start_line, current_index[0])
+        # Always highlight the start position
+        self.highlight('{}.{}'.format(self.start_line, current_index[1]))
+
+        # Start the column highlight from the lowest line number and work down the page
+        highlight_from = min(self.start_line, current_index[0])
 
         for i in range(abs(lines_moved)):
             # Don't try and highlight beyond the end of a line
             index = '{}.{}'.format(*min(
-                self.index_as_tuple(f'{start_from + i}.{current_index[1]}'),
-                self.index_as_tuple(f'{start_from + i}.{current_index[1]} lineend'),
+                self.index_as_tuple(f'{highlight_from + i}.{current_index[1]}'),
+                self.index_as_tuple(f'{highlight_from + i}.{current_index[1]} lineend'),
             ))
 
-            self.text.tag_add('colhighlight', index)
-            self.text.mark_set('colhighlight', index)
+            self.highlight(index)
+
+    def highlight(self, index: str):
+        """Highlight the specified index."""
+        self.text.tag_add(self.HIGHLIGHTNAME, index)
+        self.text.mark_set(self.HIGHLIGHTNAME, index)
 
     def alt_on(self, event):
         self.alt = True
@@ -198,8 +194,8 @@ class ColumnEdit:
     def disable(self, event):
         self.enabled = False
         self.alt = False
-        self.text.mark_unset('colhighlight')
-        self.text.tag_delete('colhighlight')
+        self.text.mark_unset(self.HIGHLIGHTNAME)
+        self.text.tag_delete(self.HIGHLIGHTNAME)
         self.text.config(blockcursor=False)
 
     def index_as_tuple(self, index: str) -> Tuple[int, ...]:
@@ -207,7 +203,7 @@ class ColumnEdit:
         return tuple(map(int, self.text.index(index).split('.')))
 
 
-class ConfigureBlockSelection:
+class BlockSelection:
     """Used to handle block-select (column-select) within a text widget."""
 
     def __init__(self, text: tk.Text):
