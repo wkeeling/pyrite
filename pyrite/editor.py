@@ -66,7 +66,8 @@ class Document(tk.Frame):
 
         self.text.focus()
 
-        self.configure_column_edit()
+        # Enable column editing
+        ColumnEditor(self.text)
 
     @property
     def name(self) -> Optional[str]:
@@ -88,34 +89,12 @@ class Document(tk.Frame):
     def length(self) -> int:
         return len(self.content)
 
-    def configure_column_edit(self):
-        column_edit = ColumnEdit(self.text)
 
-        # Configure the key bindings for column edit
-        self.text.bind('<Alt_L>', column_edit.alt_on)
-        self.text.bind('<KeyRelease-Alt_L>', column_edit.alt_off)
-        self.text.bind('<Up>', lambda e: column_edit.key_motion('{}-1l'.format(tk.INSERT)))
-        self.text.bind('<Down>', lambda e: column_edit.key_motion('{}+1l'.format(tk.INSERT)))
-        self.text.bind('<Left>', lambda e: column_edit.key_motion('{}-1c'.format(tk.INSERT)))
-        self.text.bind('<Right>', lambda e: column_edit.key_motion('{}+1c'.format(tk.INSERT)))
-        self.text.bind('<KeyRelease-Up>', lambda e: column_edit.key_motion(tk.INSERT))
-        self.text.bind('<KeyRelease-Down>', lambda e: column_edit.key_motion(tk.INSERT))
-        self.text.bind('<KeyRelease-Left>', lambda e: column_edit.key_motion(tk.INSERT))
-        self.text.bind('<KeyRelease-Right>', lambda e: column_edit.key_motion(tk.INSERT))
-        self.text.bind('<KeyRelease-Home>', lambda e: column_edit.key_motion(tk.INSERT))
-        self.text.bind('<KeyRelease-End>', lambda e: column_edit.key_motion(tk.INSERT))
-        self.text.bind('<KeyRelease-Next>', lambda e: column_edit.key_motion(tk.INSERT))
-        self.text.bind('<KeyRelease-Prior>', lambda e: column_edit.key_motion(tk.INSERT))
-        self.text.bind('<ButtonRelease-1>', column_edit.disable)
-        self.text.bind('<ButtonRelease-2>', column_edit.disable)
-        self.text.bind('<ButtonRelease-3>', column_edit.disable)
-        self.text.bind('<Escape>', column_edit.disable)
-
-
-class ColumnEdit:
+class ColumnEditor:
     """Use to handle column editing within a text widget."""
     
-    HIGHLIGHTNAME = 'colhighlight'
+    HIGHLIGHTPREFIX = 'colhighlight'
+    BINDTAG_KEYMOTION = 'keymotion'
 
     def __init__(self, text: tk.Text):
         self.text = text
@@ -126,6 +105,36 @@ class ColumnEdit:
 
         # Whether the alt key is pressed
         self.alt = False
+
+        # Configure key bindings for column editing
+        # Holding down the left Alt key and pressing an arrow key will activate
+        self.text.bind('<Alt_L>', self.alt_on)
+        self.text.bind('<KeyRelease-Alt_L>', self.alt_off)
+
+        # Configure a bindtag after the default class binding
+        bindtags = []
+        for bindtag in self.text.bindtags():
+            bindtags.append(bindtag)
+            if bindtag == 'Text':
+                bindtags.append(self.BINDTAG_KEYMOTION)
+        self.text.bindtags(bindtags)
+
+        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Up>', lambda e: self.key_motion(tk.INSERT))
+        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Down>', lambda e: self.key_motion(tk.INSERT))
+        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Left>', lambda e: self.key_motion(tk.INSERT))
+        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Right>', lambda e: self.key_motion(tk.INSERT))
+        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Home>', lambda e: self.key_motion(tk.INSERT))
+        self.text.bind_class(self.BINDTAG_KEYMOTION, '<End>', lambda e: self.key_motion(tk.INSERT))
+        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Next>', lambda e: self.key_motion(tk.INSERT))
+        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Prior>', lambda e: self.key_motion(tk.INSERT))
+        self.text.bind_class(self.BINDTAG_KEYMOTION, '<BackSpace>', self.backspace)
+        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Delete>', self.delete)
+
+        self.text.bind('<ButtonRelease-1>', self.disable)
+        self.text.bind('<ButtonRelease-2>', self.disable)
+        self.text.bind('<ButtonRelease-3>', self.disable)
+        self.text.bind('<Escape>', self.disable)
+        self.text.bind('<Key>', self.insert)
 
     def mouse_motion(self, event):
         # TODO: do we need mouse control for column edit?
@@ -152,14 +161,8 @@ class ColumnEdit:
         Args:
             index: An index in the format 'line.col'
         """
-        # Configure the column highlight
-        self.text.tag_remove(self.HIGHLIGHTNAME, '0.0', tk.END)
-        self.text.mark_unset(self.HIGHLIGHTNAME)
-        self.text.tag_config(
-            self.HIGHLIGHTNAME,
-            background=theme.current()['documentconfig']['insertbackground'],
-            bgstipple='gray50'
-        )
+        # Clear any existing highlight
+        self.remove_highlight()
 
         current_index = self.index_as_tuple(index)
         lines_moved = current_index[0] - self.start_line
@@ -177,25 +180,69 @@ class ColumnEdit:
                 self.index_as_tuple(f'{highlight_from + i}.{current_index[1]} lineend'),
             ))
 
-            self.highlight(index)
+            if index != self.text.index(tk.INSERT):
+                self.highlight(index)
 
     def highlight(self, index: str):
         """Highlight the specified index."""
-        self.text.tag_add(self.HIGHLIGHTNAME, index)
-        self.text.mark_set(self.HIGHLIGHTNAME, index)
+        name = f'{self.HIGHLIGHTPREFIX}_{index}'
+        self.text.tag_add(name, index)
+        self.text.mark_set(name, index)
+        self.text.tag_config(
+            name,
+            background=theme.current()['documentconfig']['insertbackground'],
+            bgstipple='gray50'
+        )
+
+    def remove_highlight(self):
+        """Remove all column highlights throughout the text."""
+        for name in self.text.mark_names():
+            if name.startswith(self.HIGHLIGHTPREFIX):
+                self.text.tag_remove(name, '0.0', tk.END)
+                self.text.mark_unset(name)
+
+    def highlight_names(self):
+        """Return an iterator of current highlight names."""
+        for name in self.text.mark_names():
+            if name.startswith(self.HIGHLIGHTPREFIX):
+                yield name
+
+    def insert(self, event):
+        """Insert the character represented by the event into marked columns."""
+        if self.enabled and event.char.isprintable():
+            for name in self.highlight_names():
+                self.text.insert(name, event.char)
+
+    def backspace(self, event):
+        """Delete a character back from marked columns."""
+        if self.enabled:
+            for name in self.highlight_names():
+                index = self.text.index(name)
+                self.text.delete(f'{index}-1c', index)
+            self.update(self.text.index(tk.INSERT))
+
+    def delete(self, event):
+        """Delete a character forward from marked columns."""
+        if self.enabled:
+            for name in self.highlight_names():
+                index = self.text.index(name)
+                self.text.delete(index, f'{index}+1c')
+            self.update(self.text.index(tk.INSERT))
 
     def alt_on(self, event):
+        """Handle alt key press."""
         self.alt = True
         self.start_line = self.index_as_tuple(tk.INSERT)[0]
 
     def alt_off(self, event):
+        """Handle alt key release."""
         self.alt = False
 
     def disable(self, event):
+        """Disable the current column editing session."""
         self.enabled = False
         self.alt = False
-        self.text.mark_unset(self.HIGHLIGHTNAME)
-        self.text.tag_delete(self.HIGHLIGHTNAME)
+        self.remove_highlight()
         self.text.config(blockcursor=False)
 
     def index_as_tuple(self, index: str) -> Tuple[int, ...]:
