@@ -119,14 +119,14 @@ class ColumnEditor:
                 bindtags.append(self.BINDTAG_KEYMOTION)
         self.text.bindtags(bindtags)
 
-        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Up>', lambda e: self.key_motion(tk.INSERT))
-        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Down>', lambda e: self.key_motion(tk.INSERT))
-        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Left>', lambda e: self.key_motion(tk.INSERT))
-        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Right>', lambda e: self.key_motion(tk.INSERT))
-        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Home>', lambda e: self.key_motion(tk.INSERT))
-        self.text.bind_class(self.BINDTAG_KEYMOTION, '<End>', lambda e: self.key_motion(tk.INSERT))
-        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Next>', lambda e: self.key_motion(tk.INSERT))
-        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Prior>', lambda e: self.key_motion(tk.INSERT))
+        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Up>', self.key_motion)
+        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Down>', self.key_motion)
+        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Left>', self.key_motion)
+        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Right>', self.key_motion)
+        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Home>', self.key_motion)
+        self.text.bind_class(self.BINDTAG_KEYMOTION, '<End>', self.key_motion)
+        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Next>', self.key_motion)
+        self.text.bind_class(self.BINDTAG_KEYMOTION, '<Prior>', self.key_motion)
         self.text.bind_class(self.BINDTAG_KEYMOTION, '<BackSpace>', self.backspace)
         self.text.bind_class(self.BINDTAG_KEYMOTION, '<Delete>', self.delete)
 
@@ -144,16 +144,12 @@ class ColumnEditor:
 
             return 'break'
 
-    def key_motion(self, index: str):
-        """Move the cursor to the specified index via a key press.
-        
-        Args:
-            index: An index in the format 'line.col'
-        """
+    def key_motion(self, event):
+        """Move the cursor in response to a key press."""
         if self.alt or self.enabled:
             self.enabled = True
             self.text.config(blockcursor=True)
-            self.update(index)
+            self.update(tk.INSERT)
 
     def update(self, index: str):
         """Update the text widget to display the column highlight.
@@ -167,8 +163,9 @@ class ColumnEditor:
         current_index = self.index_as_tuple(index)
         lines_moved = current_index[0] - self.start_line
 
-        # Always highlight the start position
-        self.highlight('{}.{}'.format(self.start_line, current_index[1]))
+        # Always highlight the start position if more than one line moved
+        if lines_moved:
+            self.highlight('{}.{}'.format(self.start_line, current_index[1]))
 
         # Start the column highlight from the lowest line number and work down the page
         highlight_from = min(self.start_line, current_index[0])
@@ -231,7 +228,8 @@ class ColumnEditor:
     def alt_on(self, event):
         """Handle alt key press."""
         self.alt = True
-        self.start_line = self.index_as_tuple(tk.INSERT)[0]
+        if not self.enabled:
+            self.start_line = self.index_as_tuple(tk.INSERT)[0]
 
     def alt_off(self, event):
         """Handle alt key release."""
