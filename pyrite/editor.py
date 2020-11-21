@@ -191,11 +191,10 @@ class ColumnEditor:
         self.text.tag_config(
             name,
             background=theme.current()['documentconfig']['insertbackground'],
-            bgstipple='gray50'
         )
 
     def remove_highlight(self):
-        """Remove all column highlights throughout the text."""
+        """Remove the column highlight."""
         for name in self.text.mark_names():
             if name.startswith(self.HIGHLIGHTPREFIX):
                 self.text.tag_remove(name, '0.0', tk.END)
@@ -208,13 +207,13 @@ class ColumnEditor:
                 yield name
 
     def insert(self, event):
-        """Insert the character represented by the event into marked columns."""
+        """Insert the character represented by the event into a highlighted column."""
         if self.enabled and event.char.isprintable():
             for name in self.highlight_names():
                 self.text.insert(name, event.char)
 
     def backspace(self, event):
-        """Delete a character back from marked columns."""
+        """Delete a character back from a highlighted column."""
         if self.enabled:
             for name in self.highlight_names():
                 index = self.text.index(name)
@@ -222,7 +221,7 @@ class ColumnEditor:
             self.update(self.text.index(tk.INSERT))
 
     def delete(self, event):
-        """Delete a character forward from marked columns."""
+        """Delete a character forward from a highlighted column."""
         if self.enabled:
             for name in self.highlight_names():
                 index = self.text.index(name)
