@@ -105,14 +105,16 @@ class ColumnEditor:
         self.start_line = None
         self.start_col = None
 
-        # Configure key bindings for column editing
-        # Hold down Alt-Shift-Arrow to activate
+        # Key bindings for activating column editing
+        # Hold down Alt-Shift-Arrow to activate, or Alt-Button-3 with the mouse
         self.text.bind('<Alt-Shift-Up>', lambda e: self.key_motion(offset='-1l'))
         self.text.bind('<Alt-Shift-Down>', lambda e: self.key_motion(offset='+1l'))
         self.text.bind('<Alt-Shift-Left>', lambda e: self.key_motion(offset='-1c'))
         self.text.bind('<Alt-Shift-Right>', lambda e: self.key_motion(offset='+1c'))
         self.text.bind('<Alt-Shift-Home>', lambda e: self.key_motion(offset='linestart'))
         self.text.bind('<Alt-Shift-End>', lambda e: self.key_motion(offset='lineend'))
+        self.text.bind('<Alt-Shift-B3-Motion>', self.mouse_motion)
+
         # Disable the class level key bindings which will interfere with our own
         self.text.bind_class('Text', '<Alt-Shift-Up>', lambda e: None)
         self.text.bind_class('Text', '<Alt-Shift-Down>', lambda e: None)
@@ -123,21 +125,9 @@ class ColumnEditor:
         self.text.bind_class('Text', '<Alt-Shift-Next>', lambda e: None)
         self.text.bind_class('Text', '<Alt-Shift-Prior>', lambda e: None)
 
-        # Key bindings for block selection
-        # self.text.bind('<Shift-Up>', self.select_on)
-        # self.text.bind('<Shift-Down>', self.select_on)
-        # self.text.bind('<Shift-Left>', self.select_on)
-        # self.text.bind('<Shift-Right>', self.select_on)
-        # self.text.bind('<Shift-Home>', self.select_on)
-        # self.text.bind('<Shift-End>', self.select_on)
-        # self.text.bind('<Shift-Next>', self.select_on)
-        # self.text.bind('<Shift-Prior>', self.select_on)
-        # self.text.bind('<KeyRelease-Shift_L>', self.select_off)
-        # self.text.bind('<KeyRelease-Shift_R>', self.select_off)
-
         # Key bindings for text modification
         self.text.bind('<Key>', self.insert)
-        self.text.bind_class('Text', '<BackSpace>', self.backspace)
+        self.text.bind('<BackSpace>', self.backspace)
         self.text.bind('<Delete>', self.delete)
 
         # Key bindings for deactivating column editing
@@ -149,15 +139,23 @@ class ColumnEditor:
         self.text.bind('<End>', self.deactivate)
         self.text.bind('<Next>', self.deactivate)
         self.text.bind('<Prior>', self.deactivate)
-        self.text.bind('<ButtonRelease-2>', self.deactivate)
-        self.text.bind('<ButtonRelease-3>', self.deactivate)
+        self.text.bind('<ButtonRelease-1>', self.deactivate)
         self.text.bind('<Escape>', self.deactivate)
 
     def key_motion(self, offset):
-        """Respond to a key press that moves the cursor applying the specified offset."""
+        """Respond to a key press that moves the cursor with the requested offset."""
         if not self.start_line:
             self.start_line, self.start_col = self.index_as_tuple(tk.INSERT)
         self.update(f'{self.text.index(tk.INSERT)} {offset}')
+
+    def mouse_motion(self, event):
+        """Respond to a mouse drag event."""
+        mouse_index = f'@{event.x},{event.y}'
+        if not self.start_line:
+            self.start_line, self.start_col = self.index_as_tuple(mouse_index)
+        self.update(mouse_index)
+
+        return 'break'
 
     def update(self, index: str):
         """Update the text widget to display the column highlight.
@@ -172,19 +170,20 @@ class ColumnEditor:
         # Ensure the cursor is moved to the current index
         self.text.mark_set(tk.INSERT, index)
 
-        # Clear any existing highlight
+        # Clear any existing highlight and selection
         self.remove_highlight()
+        self.text.tag_remove(tk.SEL, '0.0', tk.END)
 
         current_index = self.index_as_tuple(index)
         lines_moved = current_index[0] - self.start_line
         cols_moved = current_index[1] - self.start_col
 
-        # Block selection is calculated from the top left corner
-        # top_left = f'{min(self.start_line, current_index[0])}.{min(self.start_col, current_index[1])}'
+        # Add selection for the current row
+        args = f'{current_index[0]}.{self.start_col}', tk.INSERT
+        if cols_moved < 0:
+            args = reversed(args)
 
-        # Highlight the start position if more than one line moved
-        if lines_moved:
-            self.highlight_index('{}.{}'.format(self.start_line, current_index[1]))
+        self.text.tag_add(tk.SEL, *args)
 
         for i in range(abs(lines_moved)):
             if lines_moved < 0:
@@ -192,16 +191,15 @@ class ColumnEditor:
 
             index = f'{self.start_line + i}.{current_index[1]}'
 
+            # Add the column highlight
             self.highlight_index(index)
 
             # Block selection is implemented by layering multiple single line selections
-            # sel_start = '{}.{}'.format(*self.index_as_tuple(f'{top_left}+{i}l'))
-            # sel_end = '{}.{}'.format(*min(
-            #     self.index_as_tuple(f'{top_left}+{i}l lineend'),
-            #     self.index_as_tuple(f'{top_left}+{i}l+{abs(cols_moved)}c')
-            # ))
-            #
-            # self.text.tag_add(tk.SEL, f'{sel_start}', f'{sel_end}')
+            args = f'{self.start_line + i}.{self.start_col}', index
+            if cols_moved < 0:
+                args = reversed(args)
+
+            self.text.tag_add(tk.SEL, *args)
             # self.text.mark_set(tk.INSERT, index)
 
     def highlight_index(self, index: str):
@@ -227,14 +225,6 @@ class ColumnEditor:
             if name.startswith(self.INSERTION_MARK_PREFIX):
                 yield name
 
-    def mouse_motion(self, event):
-        # TODO: do we need mouse control for column edit?
-        if self.alt or self.active:
-            mouse_index = f'@{event.x},{event.y}'
-            self.update(mouse_index)
-
-            return 'break'
-
     def insert(self, event):
         """Insert the character represented by the event into a highlighted column."""
         if self.active and event.char.isprintable():
@@ -247,7 +237,12 @@ class ColumnEditor:
             for name in self.highlight_names():
                 index = self.text.index(name)
                 self.text.delete(f'{index}-1c', index)
-            self.update(self.text.index(f'{tk.INSERT}-1c'))
+
+            self.text.delete(f'{tk.INSERT}-1c', tk.INSERT)
+            self.update(self.text.index(f'{tk.INSERT}'))
+            self.text.tag_remove(tk.SEL, '0.0', tk.END)
+
+            return 'break'
 
     def delete(self, event):
         """Delete characters after the cursor's current position."""
@@ -265,6 +260,7 @@ class ColumnEditor:
             self.remove_highlight()
             self.text.config(blockcursor=False)
             self.text.tag_remove(tk.SEL, '0.0', tk.END)
+            return 'break'
 
     def index_as_tuple(self, index: str) -> Tuple[int, ...]:
         """Take an index in the form '12.23' and convert to a tuple of two integers."""
