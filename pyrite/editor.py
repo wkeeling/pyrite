@@ -240,12 +240,13 @@ class ColumnEditor:
     def backspace(self, event):
         """Delete characters before the cursor's current position."""
         if self.active:
-            self.delete_selected_chars()
-            for name in self.highlight_names():
-                index = self.text.index(name)
-                self.text.delete(f'{index}-1c', index)
+            if not self.delete_selected_chars():
+                for name in self.highlight_names():
+                    index = self.text.index(name)
+                    self.text.delete(f'{index}-1c', index)
 
-            self.text.delete(f'{tk.INSERT}-1c', tk.INSERT)
+                self.text.delete(f'{tk.INSERT}-1c', tk.INSERT)
+
             self.start_col = self.index_as_tuple(tk.INSERT).col
             self.update(self.text.index(f'{tk.INSERT}'))
 
@@ -254,13 +255,17 @@ class ColumnEditor:
     def delete(self, event):
         """Delete characters after the cursor's current position."""
         if self.active:
-            if self.delete_selected_chars():
-                return 'break'
+            if not self.delete_selected_chars():
+                for name in self.highlight_names():
+                    index = self.text.index(name)
+                    self.text.delete(index, f'{index}+1c')
 
-            for name in self.highlight_names():
-                index = self.text.index(name)
-                self.text.delete(index, f'{index}+1c')
-            self.update(self.text.index(tk.INSERT))
+                self.text.delete(tk.INSERT, f'{tk.INSERT}+1c')
+
+            self.start_col = self.index_as_tuple(tk.INSERT).col
+            self.update(self.text.index(f'{tk.INSERT}'))
+
+            return 'break'
 
     def delete_selected_chars(self) -> bool:
         """Delete characters that are currently selected.
