@@ -1,8 +1,7 @@
 import tkinter as tk
-from collections import namedtuple
 from pathlib import Path
 from tkinter import ttk
-from typing import NamedTuple, Optional, Tuple
+from typing import NamedTuple, Optional
 
 from pyrite import settings, theme
 
@@ -233,9 +232,15 @@ class ColumnEditor:
         """Insert the character represented by the event into a highlighted column."""
         if self.active and event.char:
             self.delete_selected_chars()
+
             for name in self.highlight_names():
                 self.text.insert(name, event.char)
+
+            self.text.insert(tk.INSERT, event.char)
             self.start_col = self.index_as_tuple(tk.INSERT).col
+            self.update(self.text.index(f'{tk.INSERT}'))
+
+            return 'break'
 
     def backspace(self, event):
         """Delete characters before the cursor's current position."""
@@ -288,6 +293,7 @@ class ColumnEditor:
         if self.active:
             self.active = False
             self.start_line = None
+            self.start_col = None
             self.remove_highlight()
             self.text.tag_remove(tk.SEL, '0.0', tk.END)
             return 'break'
