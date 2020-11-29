@@ -92,7 +92,7 @@ class Document(tk.Frame):
 
 class Index(NamedTuple):
     line: int
-    col: int
+    char: int
 
 
 class ColumnEditor:
@@ -101,6 +101,7 @@ class ColumnEditor:
     INSERTION_MARK_PREFIX = 'markinsert'
 
     def __init__(self, text: tk.Text):
+        # The text widget we're acting on
         self.text = text
 
         # Whether column editing is active
@@ -108,19 +109,20 @@ class ColumnEditor:
 
         # The starting line and column when column editing begins
         self.start_line = None
-        self.start_col = None
+        self.start_char = None
 
         # Key bindings for activating column editing
         # Hold down Alt-Shift-Arrow to activate, or Alt-Button-3 with the mouse
         self.text.bind('<Alt-Shift-Up>', lambda e: self.key_motion(offset='-1l'))
         self.text.bind('<Alt-Shift-Down>', lambda e: self.key_motion(offset='+1l'))
-        self.text.bind('<Alt-Shift-Left>', lambda e: self.key_motion(offset='-1c'))
-        self.text.bind('<Alt-Shift-Right>', lambda e: self.key_motion(offset='+1c'))
+        self.text.bind('<Alt-Shift-Left>', lambda e: self.key_motion(offset='-1 a indices'))
+        self.text.bind('<Alt-Shift-Right>', lambda e: self.key_motion(offset='+1 a indices'))
         self.text.bind('<Alt-Shift-Home>', lambda e: self.key_motion(offset='linestart'))
         self.text.bind('<Alt-Shift-End>', lambda e: self.key_motion(offset='lineend'))
         self.text.bind('<Alt-Shift-B3-Motion>', self.mouse_motion)
 
-        # Disable the class level key bindings which will interfere with our own
+        # Disable the class level key bindings which will otherwise interfere
+        # with our own.
         self.text.bind_class('Text', '<Alt-Shift-Up>', lambda e: None)
         self.text.bind_class('Text', '<Alt-Shift-Down>', lambda e: None)
         self.text.bind_class('Text', '<Alt-Shift-Left>', lambda e: None)
@@ -148,43 +150,47 @@ class ColumnEditor:
         self.text.bind('<Escape>', self.deactivate)
 
     def key_motion(self, offset):
-        """Respond to a key press that moves the cursor with the requested offset."""
+        """Move the cursor by the specified offset.
+
+        The offset is in index form, e.g. +1c
+        """
         if not self.start_line:
-            self.start_line, self.start_col = self.index_as_tuple(tk.INSERT)
+            self.start_line, self.start_char = self.index_as_tuple(tk.INSERT)
         self.update(f'{self.text.index(tk.INSERT)} {offset}')
 
     def mouse_motion(self, event):
         """Respond to a mouse drag event."""
         mouse_index = f'@{event.x},{event.y}'
         if not self.start_line:
-            self.start_line, self.start_col = self.index_as_tuple(mouse_index)
+            self.start_line, self.start_char = self.index_as_tuple(mouse_index)
         self.update(mouse_index)
 
         return 'break'
 
     def update(self, index: str):
-        """Update the text widget to display the column highlight.
+        """Update the text widget to display the column highlight and
+        block selection.
 
         Args:
-            index: An index in the format 'line.col'
+            index: An index in the format 'line.char'
         """
         if not self.active:
             self.active = True
-
-        # Ensure the cursor is moved to the current index
-        self.text.mark_set(tk.INSERT, index)
 
         # Clear any existing highlight and selection
         self.remove_highlight()
         self.text.tag_remove(tk.SEL, '0.0', tk.END)
 
+        # Ensure the cursor is moved to the current index
+        self.text.mark_set(tk.INSERT, index)
+
         current_index = self.index_as_tuple(index)
         lines_moved = current_index.line - self.start_line
-        cols_moved = current_index.col - self.start_col
+        chars_moved = current_index.char - self.start_char
 
         # Add selection for the current row
-        args = f'{current_index.line}.{self.start_col}', tk.INSERT
-        if cols_moved < 0:
+        args = f'{current_index.line}.{self.start_char}', tk.INSERT
+        if chars_moved < 0:
             args = reversed(args)
 
         self.text.tag_add(tk.SEL, *args)
@@ -193,17 +199,19 @@ class ColumnEditor:
             if lines_moved < 0:
                 i = i * -1  # Moving up the page
 
-            index = f'{self.start_line + i}.{current_index.col}'
+            index = f'{self.start_line + i}.{current_index.char}'
 
             # Add the column highlight
             self.highlight_index(index)
 
             # Block selection is implemented by layering multiple single line selections
-            args = f'{self.start_line + i}.{self.start_col}', index
-            if cols_moved < 0:
+            args = f'{self.start_line + i}.{self.start_char}', index
+            if chars_moved < 0:
                 args = reversed(args)
 
             self.text.tag_add(tk.SEL, *args)
+
+    def get_char(self, ):
 
     def highlight_index(self, index: str):
         """Highlight the specified index."""
@@ -229,7 +237,8 @@ class ColumnEditor:
                 yield name
 
     def insert(self, event):
-        """Insert the character represented by the event into a highlighted column."""
+        """Insert the character represented by the event into a
+        highlighted column."""
         if self.active and event.char:
             self.delete_selected_chars()
 
@@ -237,13 +246,16 @@ class ColumnEditor:
                 self.text.insert(name, event.char)
 
             self.text.insert(tk.INSERT, event.char)
-            self.start_col = self.index_as_tuple(tk.INSERT).col
+            # Reset the starting position
+            self.start_char = self.index_as_tuple(tk.INSERT).char
             self.update(self.text.index(f'{tk.INSERT}'))
 
             return 'break'
 
     def backspace(self, event):
-        """Delete characters before the cursor's current position."""
+        """Delete characters before the cursor's current position
+        from a highlighted column.
+        """
         if self.active:
             if not self.delete_selected_chars():
                 for name in self.highlight_names():
@@ -252,13 +264,16 @@ class ColumnEditor:
 
                 self.text.delete(f'{tk.INSERT}-1c', tk.INSERT)
 
-            self.start_col = self.index_as_tuple(tk.INSERT).col
+            # Reset the starting position
+            self.start_char = self.index_as_tuple(tk.INSERT).char
             self.update(self.text.index(f'{tk.INSERT}'))
 
             return 'break'
 
     def delete(self, event):
-        """Delete characters after the cursor's current position."""
+        """Delete characters after the cursor's current position
+        from a highlighted column.
+        """
         if self.active:
             if not self.delete_selected_chars():
                 for name in self.highlight_names():
@@ -267,13 +282,15 @@ class ColumnEditor:
 
                 self.text.delete(tk.INSERT, f'{tk.INSERT}+1c')
 
-            self.start_col = self.index_as_tuple(tk.INSERT).col
+            # Reset the starting position
+            self.start_char = self.index_as_tuple(tk.INSERT).char
             self.update(self.text.index(f'{tk.INSERT}'))
 
             return 'break'
 
     def delete_selected_chars(self) -> bool:
-        """Delete characters that are currently selected.
+        """Delete characters that are currently selected from a
+        highighted column.
 
         Returns: True if selected characters were deleted, False otherwise.
         """
@@ -282,7 +299,7 @@ class ColumnEditor:
             end_sel = self.index_as_tuple(tk.SEL_LAST)
 
             for line in range(start_sel.line, end_sel.line + 1):
-                self.text.delete(f'{line}.{start_sel.col}', f'{line}.{end_sel.col}')
+                self.text.delete(f'{line}.{start_sel.char}', f'{line}.{end_sel.char}')
 
             return True
 
@@ -293,7 +310,7 @@ class ColumnEditor:
         if self.active:
             self.active = False
             self.start_line = None
-            self.start_col = None
+            self.start_char = None
             self.remove_highlight()
             self.text.tag_remove(tk.SEL, '0.0', tk.END)
             return 'break'
