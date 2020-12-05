@@ -61,9 +61,6 @@ class Document(tk.Frame):
         self.text.config(**theme.current['documentconfig'])
         self.text.pack(expand=True, fill=tk.BOTH)
 
-        with open('/home/will/Documents/cv_case_studies.txt', 'rt') as f:
-            self.text.insert(tk.END, f.read())
-
         self.text.focus()
 
         # Enable column editing
@@ -112,13 +109,18 @@ class ColumnEditor:
         self.start_char = None
 
         # Key bindings for activating column editing
-        # Hold down Alt-Shift-Arrow to activate, or Alt-Button-3 with the mouse
         self.text.bind(keybindings.COLUMN_EDIT_UP, lambda e: self.key_motion(offset='-1l'))  # noqa
         self.text.bind(keybindings.COLUMN_EDIT_DOWN, lambda e: self.key_motion(offset='+1l'))
-        self.text.bind(keybindings.COLUMN_EDIT_LEFT, lambda e: self.key_motion(offset='-1 a indices'))
-        self.text.bind(keybindings.COLUMN_EDIT_RIGHT, lambda e: self.key_motion(offset='+1 a indices'))
-        self.text.bind(keybindings.COLUMN_EDIT_HOME, lambda e: self.key_motion(offset='linestart'))
-        self.text.bind(keybindings.COLUMN_EDIT_END, lambda e: self.key_motion(offset='lineend'))
+        self.text.bind(keybindings.COLUMN_EDIT_LEFT, lambda e: self.key_motion(offset='-1c'))
+        self.text.bind(keybindings.COLUMN_EDIT_RIGHT, lambda e: self.key_motion(offset='+1c'))
+        self.text.bind(keybindings.COLUMN_EDIT_HOME, lambda e: self.key_motion(offset='display linestart'))
+        self.text.bind(keybindings.COLUMN_EDIT_END, lambda e: self.key_motion(offset='display lineend'))
+        self.text.bind(keybindings.COLUMN_EDIT_DOC_HOME, lambda e: self.key_motion(
+            offset=f'-{self.index_as_tuple(tk.INSERT)[0]}l'
+        ))
+        self.text.bind(keybindings.COLUMN_EDIT_DOC_END, lambda e: self.key_motion(
+            offset=f'+{self.index_as_tuple(tk.END)[0] - self.index_as_tuple(tk.INSERT)[0] - 1}l'
+        ))
         self.text.bind(keybindings.COLUMN_EDIT_DRAG, self.mouse_motion)
 
         # Disable the class level key bindings which will otherwise interfere
