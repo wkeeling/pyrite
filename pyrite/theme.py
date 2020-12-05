@@ -1,3 +1,8 @@
+"""Holds attributes that define the look and feel of the application.
+
+To get the current theme based on a user's settings, use theme.current
+"""
+
 import tkinter as tk
 
 from pyrite import settings
@@ -32,6 +37,12 @@ light = {
 }
 
 
-def current() -> dict:
-    """Get the current theme based on the user's settings."""
-    return globals().get(settings['theme'], dark)
+def __getattr__(name):
+    try:
+        if name == 'current':
+            # Get the current theme based on the user's settings
+            return globals().get(settings['theme'], dark)
+
+        return globals()[name]
+    except KeyError:
+        raise AttributeError(f'module {__name__!r} has no attribute {name!r}')

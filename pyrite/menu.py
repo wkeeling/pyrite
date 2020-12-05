@@ -8,7 +8,7 @@ from pyrite import state, theme
 def create(master: tk.Widget, editor):
     menubar = tk.Menu(master=master, tearoff=False)
     master.config(menu=menubar)
-    menubar.config(**theme.current()['menuconfig'])
+    menubar.config(**theme.current['menuconfig'])
 
     filemenu = FileMenu(master=menubar, editor=editor)
     menubar.add_cascade(label='File', underline=0, menu=filemenu)
@@ -20,7 +20,7 @@ class FileMenu(tk.Menu):
         super().__init__(master=master, tearoff=False)
         self.editor = editor
 
-        self.config(**theme.current()['menuconfig'])
+        self.config(**theme.current['menuconfig'])
         self.add_command(label='New...', underline=0, command=self.destroy)
         self.add_command(label='Open...', underline=0, command=self._open)
         self.add_separator()

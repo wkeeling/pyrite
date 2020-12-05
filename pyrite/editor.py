@@ -58,7 +58,7 @@ class Document(tk.Frame):
             master=self,
             wrap=tk.WORD if settings.getboolean('word_wrap') else tk.NONE,
         )
-        self.text.config(**theme.current()['documentconfig'])
+        self.text.config(**theme.current['documentconfig'])
         self.text.pack(expand=True, fill=tk.BOTH)
 
         with open('/home/will/Documents/cv_case_studies.txt', 'rt') as f:
@@ -211,8 +211,6 @@ class ColumnEditor:
 
             self.text.tag_add(tk.SEL, *args)
 
-    def get_char(self, ):
-
     def highlight_index(self, index: str):
         """Highlight the specified index."""
         name = f'{self.INSERTION_MARK_PREFIX}_{index}'
@@ -220,7 +218,7 @@ class ColumnEditor:
         self.text.mark_set(name, index)
         self.text.tag_config(
             name,
-            background=theme.current()['documentconfig']['insertbackground'],
+            background=theme.current['documentconfig']['insertbackground'],
         )
 
     def remove_highlight(self):
