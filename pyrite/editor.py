@@ -3,7 +3,7 @@ from pathlib import Path
 from tkinter import ttk
 from typing import NamedTuple, Optional
 
-from pyrite import settings, theme
+from pyrite import keybindings, settings, theme
 
 
 class Editor(ttk.Notebook):
@@ -113,24 +113,24 @@ class ColumnEditor:
 
         # Key bindings for activating column editing
         # Hold down Alt-Shift-Arrow to activate, or Alt-Button-3 with the mouse
-        self.text.bind('<Alt-Shift-Up>', lambda e: self.key_motion(offset='-1l'))
-        self.text.bind('<Alt-Shift-Down>', lambda e: self.key_motion(offset='+1l'))
-        self.text.bind('<Alt-Shift-Left>', lambda e: self.key_motion(offset='-1 a indices'))
-        self.text.bind('<Alt-Shift-Right>', lambda e: self.key_motion(offset='+1 a indices'))
-        self.text.bind('<Alt-Shift-Home>', lambda e: self.key_motion(offset='linestart'))
-        self.text.bind('<Alt-Shift-End>', lambda e: self.key_motion(offset='lineend'))
-        self.text.bind('<Alt-Shift-B3-Motion>', self.mouse_motion)
+        self.text.bind(keybindings.COLUMN_EDIT_UP, lambda e: self.key_motion(offset='-1l'))  # noqa
+        self.text.bind(keybindings.COLUMN_EDIT_DOWN, lambda e: self.key_motion(offset='+1l'))
+        self.text.bind(keybindings.COLUMN_EDIT_LEFT, lambda e: self.key_motion(offset='-1 a indices'))
+        self.text.bind(keybindings.COLUMN_EDIT_RIGHT, lambda e: self.key_motion(offset='+1 a indices'))
+        self.text.bind(keybindings.COLUMN_EDIT_HOME, lambda e: self.key_motion(offset='linestart'))
+        self.text.bind(keybindings.COLUMN_EDIT_END, lambda e: self.key_motion(offset='lineend'))
+        self.text.bind(keybindings.COLUMN_EDIT_DRAG, self.mouse_motion)
 
         # Disable the class level key bindings which will otherwise interfere
         # with our own.
-        self.text.bind_class('Text', '<Alt-Shift-Up>', lambda e: None)
-        self.text.bind_class('Text', '<Alt-Shift-Down>', lambda e: None)
-        self.text.bind_class('Text', '<Alt-Shift-Left>', lambda e: None)
-        self.text.bind_class('Text', '<Alt-Shift-Right>', lambda e: None)
-        self.text.bind_class('Text', '<Alt-Shift-Home>', lambda e: None)
-        self.text.bind_class('Text', '<Alt-Shift-End>', lambda e: None)
-        self.text.bind_class('Text', '<Alt-Shift-Next>', lambda e: None)
-        self.text.bind_class('Text', '<Alt-Shift-Prior>', lambda e: None)
+        self.text.bind_class('Text', keybindings.COLUMN_EDIT_UP, lambda e: None)
+        self.text.bind_class('Text', keybindings.COLUMN_EDIT_DOWN, lambda e: None)
+        self.text.bind_class('Text', keybindings.COLUMN_EDIT_LEFT, lambda e: None)
+        self.text.bind_class('Text', keybindings.COLUMN_EDIT_RIGHT, lambda e: None)
+        self.text.bind_class('Text', keybindings.COLUMN_EDIT_HOME, lambda e: None)
+        self.text.bind_class('Text', keybindings.COLUMN_EDIT_END, lambda e: None)
+        self.text.bind_class('Text', keybindings.COLUMN_EDIT_NEXT, lambda e: None)
+        self.text.bind_class('Text', keybindings.COLUMN_EDIT_PRIOR, lambda e: None)
 
         # Key bindings for text modification
         self.text.bind('<Key>', self.insert)
