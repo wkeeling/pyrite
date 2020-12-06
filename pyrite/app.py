@@ -16,9 +16,9 @@ class MainWindow(ThemedTk):
         # Todo: use x=100 position here
         self.geometry('1024x768+500+100')
 
-        self.set_theme(theme.current['ttktheme'])
+        self.set_theme(theme.ttktheme)
 
-        settings.on_save(lambda: self.set_theme(theme.current['ttktheme']))
+        settings.on_save(lambda: self.set_theme(theme.ttktheme))
 
         ed = editor.create(master=self)
         menu.create(master=self, editor=ed)

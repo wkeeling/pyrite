@@ -58,7 +58,7 @@ class Document(tk.Frame):
             master=self,
             wrap=tk.WORD if settings.getboolean('word_wrap') else tk.NONE,
         )
-        self.text.config(**theme.current['documentconfig'])
+        self.text.config(**theme.documentconfig)
         self.text.pack(expand=True, fill=tk.BOTH)
 
         self.text.focus()
@@ -220,7 +220,7 @@ class ColumnEditor:
         self.text.mark_set(name, index)
         self.text.tag_config(
             name,
-            background=theme.current['documentconfig']['insertbackground'],
+            background=theme.documentconfig['insertbackground'],
         )
 
     def remove_highlight(self):
