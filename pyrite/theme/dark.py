@@ -1,6 +1,7 @@
 import tkinter as tk
 
 ttktheme = 'equilux'
+
 menuconfig = {
     'relief': tk.FLAT,
     'activeborderwidth': 0,
