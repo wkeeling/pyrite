@@ -9,14 +9,12 @@ from pyrite import theme
 def settings():
     with patch('pyrite.theme.settings', new=dict()) as mock_settings:
         yield mock_settings
-        del theme.ttktheme
 
 
 def test_load_active_theme(settings):
     settings['theme'] = 'light'
 
     assert theme.ttktheme == 'arc'
-    assert 'ttktheme' in vars(theme)
 
 
 def test_no_such_theme(settings):
