@@ -27,7 +27,7 @@ class FileMenu(tk.Menu):
         self.add_command(label='Exit', underline=1, command=self.destroy)
 
     def open(self):
-        filename = tk.filedialog.askopenfilename(
+        filename = filedialog.askopenfilename(
             initialdir=state.get('last_open_loc', '/'),
             title='Open',
             filetypes=(('all files', '*.*'),)
