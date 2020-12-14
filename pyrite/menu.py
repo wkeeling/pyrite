@@ -5,7 +5,7 @@ from tkinter import filedialog
 from pyrite import state, theme
 
 
-def create(master: tk.Widget, editor):
+def create(master: tk.Tk, editor):
     menubar = tk.Menu(master=master, tearoff=False)
     master.config(menu=menubar)
     menubar.config(**theme.menuconfig)
@@ -22,11 +22,11 @@ class FileMenu(tk.Menu):
 
         self.config(**theme.menuconfig)
         self.add_command(label='New...', underline=0, command=self.destroy)
-        self.add_command(label='Open...', underline=0, command=self._open)
+        self.add_command(label='Open...', underline=0, command=self.open)
         self.add_separator()
         self.add_command(label='Exit', underline=1, command=self.destroy)
 
-    def _open(self):
+    def open(self):
         filename = tk.filedialog.askopenfilename(
             initialdir=state.get('last_open_loc', '/'),
             title='Open',

@@ -11,7 +11,7 @@ class Editor(ttk.Notebook):
 
     new_document_name = 'Untitled'
 
-    def __init__(self, master: tk.Widget, on_tab_change: callable):
+    def __init__(self, master: tk.Tk, on_tab_change: callable):
         super().__init__(master=master)
 
         self.documents = []
@@ -57,8 +57,9 @@ class Document(tk.Frame):
         self.text = tk.Text(
             master=self,
             wrap=tk.WORD if settings.getboolean('word_wrap') else tk.NONE,
+            undo=True,
         )
-        self.text.config(**theme.documentconfig)
+        self.text.config(**theme.textconfig)
         self.text.pack(expand=True, fill=tk.BOTH)
 
         self.text.focus()
@@ -220,7 +221,7 @@ class ColumnEditor:
         self.text.mark_set(name, index)
         self.text.tag_config(
             name,
-            background=theme.documentconfig['insertbackground'],
+            background=theme.textconfig['insertbackground'],
         )
 
     def remove_highlight(self):
@@ -320,11 +321,11 @@ class ColumnEditor:
         return Index(*map(int, self.text.index(index).split('.')))
 
 
-def create(master: tk.Widget) -> Editor:
+def create(master: tk.Tk) -> Editor:
     """Convenience function for creating an Editor instance.
 
     Args:
-        master: The parent widget.
+        master: The parent top level window.
     Returns: The Editor instance.
     """
     editor = Editor(master=master, on_tab_change=lambda x: print(x))
