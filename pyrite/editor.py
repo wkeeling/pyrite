@@ -10,13 +10,21 @@ class Editor(ttk.Notebook):
     """Responsible for managing a collection of Documents in a tabbed view."""
 
     def __init__(self, master: tk.Tk, on_tab_change: callable):
+        """Create a new Editor instance.
+
+        Args:
+            master: The parent widget.
+            on_tab_change: Callable that gets invoked when the current tab is changed.
+                The callable will be passed the Document instance associated with the
+                tab.
+        """
         super().__init__(master=master)
 
         self.documents = []
 
         self.new()
 
-        self.bind('<<NotebookTabChanged>>', lambda e: on_tab_change(self.identify(e.x, e.y)))
+        self.bind('<<NotebookTabChanged>>', lambda e: on_tab_change(self.current_document))
 
     def new(self):
         """Create a new document in the editor."""
@@ -36,10 +44,12 @@ class Editor(ttk.Notebook):
         """
         self.new()
         self.current_document.load(filename, encoding)
+        self.tab('current', text=self.current_document.name)
 
     def save(self, filename: str = None, encoding: str = 'utf-8'):
         """Save the current document."""
         self.current_document.save(filename, encoding)
+        self.tab('current', text=self.current_document.name)
 
     @property
     def current_document(self):
@@ -88,7 +98,7 @@ class Document(tk.Frame):
         with open(filename, 'rt', encoding=encoding) as f:
             content = f.read()
 
-            self.text.delete(0, tk.END)
+            self.text.delete('1.0', tk.END)
             self.text.insert(tk.END, content)
 
             self.filename = filename
@@ -351,6 +361,20 @@ def create(master: tk.Tk) -> Editor:
         master: The parent top level window.
     Returns: The Editor instance.
     """
-    editor = Editor(master=master, on_tab_change=lambda x: print(x))
+    def build_title(document):
+        parts = [
+            document.name,
+        ]
+
+        if document.filename:
+            parts.append('-')
+            parts.append(f'{document.filename}')
+
+        parts.append('-')
+        parts.append('pyrite')
+
+        master.title(' '.join(parts))
+
+    editor = Editor(master=master, on_tab_change=build_title)
     editor.pack(expand=True, fill=tk.BOTH)
     return editor
