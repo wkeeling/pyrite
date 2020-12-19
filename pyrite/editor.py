@@ -1,15 +1,13 @@
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 from pyrite import keybindings, settings, theme
 
 
 class Editor(ttk.Notebook):
     """Responsible for managing a collection of Documents in a tabbed view."""
-
-    new_document_name = 'Untitled'
 
     def __init__(self, master: tk.Tk, on_tab_change: callable):
         super().__init__(master=master)
@@ -21,25 +19,27 @@ class Editor(ttk.Notebook):
         self.bind('<<NotebookTabChanged>>', lambda e: on_tab_change(self.identify(e.x, e.y)))
 
     def new(self):
+        """Create a new document in the editor."""
         doc = Document(master=self, on_cursor=lambda: None, on_change=lambda: None)
         doc.pack(expand=True, fill=tk.BOTH)
-        self.add(doc, text=self.new_document_name)
+        self.add(doc, text=doc.name)
         self.documents.append(doc)
         # Display the new document (make the tab active by selecting it)
         self.select(self.tabs()[-1])
 
     def open(self, filename: str, encoding: str = 'utf-8'):
-        with open(filename, 'rt', encoding=encoding) as f:
-            content = f.read()
+        """Open a document into the editor from a file.
 
-            if self.current_document.length > 0:
-                self.new()
+        Args:
+            filename: The filename of the document to open.
+            encoding: The character encoding of the document.
+        """
+        self.new()
+        self.current_document.load(filename, encoding)
 
-            self.current_document.content = content
-
-    def save(self):
-        # Saves the currently active document
-        pass
+    def save(self, filename: str = None, encoding: str = 'utf-8'):
+        """Save the current document."""
+        self.current_document.save(filename, encoding)
 
     @property
     def current_document(self):
@@ -49,10 +49,14 @@ class Editor(ttk.Notebook):
 
 class Document(tk.Frame):
 
+    defaultname = 'Untitled'
+
+    filename: str = None
+
+    encoding: str = 'UTF-8'
+
     def __init__(self, master: tk.Widget, on_cursor: callable, on_change: callable):
         super().__init__(master=master)
-
-        self.filename: str = None
 
         self.text = tk.Text(
             master=self,
@@ -68,24 +72,43 @@ class Document(tk.Frame):
         ColumnEditor(self.text)
 
     @property
-    def name(self) -> Optional[str]:
+    def name(self) -> str:
         if self.filename:
             return Path(self.filename).name
 
-        return None
+        return self.defaultname
 
-    @property
-    def content(self) -> str:
-        return self.text.get(1.0, 'end-1c')
+    def load(self, filename: str = None, encoding: str = 'UTF-8'):
+        """Load this document's content disk.
 
-    @content.setter
-    def content(self, content: str):
-        self.text.insert(tk.END, content)
-        self.text.tag_configure('start', background='black', foreground='white')
+        Args:
+            filename: The name of the file.
+            encoding: The file encoding.
+        """
+        with open(filename, 'rt', encoding=encoding) as f:
+            content = f.read()
 
-    @property
-    def length(self) -> int:
-        return len(self.content)
+            self.text.delete(0, tk.END)
+            self.text.insert(tk.END, content)
+
+            self.filename = filename
+
+    def save(self, filename: str = None, encoding: str = 'UTF-8'):
+        """Save this document to a file.
+
+        Args:
+            filename: The filename to save the document to. This can be omitted
+                if the document already has a filename associated with it.
+            encoding: The file encoding to use.
+        """
+        if filename is None and self.filename is None:
+            raise RuntimeError('No filename set')
+
+        if filename is not None:
+            self.filename = filename
+
+        with open(self.filename, 'wt', encoding=encoding) as f:
+            f.write(self.text.get('1.0', tk.END + '-1c'))
 
 
 class Index(NamedTuple):
