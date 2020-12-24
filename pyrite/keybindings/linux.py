@@ -1,3 +1,5 @@
+CLOSE_TAB_MOUSE = '<ButtonRelease-2>'
+
 COLUMN_EDIT_UP = '<Alt-Shift-Up>'
 COLUMN_EDIT_DOWN = '<Alt-Shift-Down>'
 COLUMN_EDIT_LEFT = '<Alt-Shift-Left>'

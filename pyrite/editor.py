@@ -25,6 +25,7 @@ class Editor(ttk.Notebook):
         self.new()
 
         self.bind('<<NotebookTabChanged>>', lambda e: on_tab_change(self.current_document))
+        self.bind(keybindings.CLOSE_TAB_MOUSE, lambda e: self.close_tab(f'@{e.x},{e.y}'))
 
     def new(self):
         """Create a new document in the editor."""
@@ -55,6 +56,11 @@ class Editor(ttk.Notebook):
     def current_document(self):
         current = self.documents[self.index('current')]
         return current
+
+    def close_tab(self, tab_id):
+        if tab_id:
+            self.documents.pop(self.index(tab_id))
+            self.forget(tab_id)
 
 
 class Document(tk.Frame):
