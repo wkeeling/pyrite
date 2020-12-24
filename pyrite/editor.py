@@ -22,6 +22,7 @@ class Editor(ttk.Notebook):
 
         self.documents = []
 
+        # Always start with one empty tab
         self.new()
 
         self.bind('<<NotebookTabChanged>>', lambda e: on_tab_change(self.current_document))
@@ -43,7 +44,9 @@ class Editor(ttk.Notebook):
             filename: The filename of the document to open.
             encoding: The character encoding of the document.
         """
-        self.new()
+        if not self.current_document.empty:
+            # Empty tabs can be reused, but otherwise a new tab is created for the new document
+            self.new()
         self.current_document.load(filename, encoding)
         self.tab('current', text=self.current_document.name)
 
@@ -59,8 +62,21 @@ class Editor(ttk.Notebook):
 
     def close_tab(self, tab_id):
         if tab_id:
-            self.documents.pop(self.index(tab_id))
-            self.forget(tab_id)
+            # TODO perform save checks
+            if len(self.tabs()) > 1:
+                try:
+                    index = self.index(tab_id)
+                except tk.TclError:
+                    return
+                else:
+                    self.documents.pop(index)
+                    self.forget(tab_id)
+            else:
+                self.exit()
+
+    def exit(self):
+        # TODO perform save checks
+        self.master.destroy()
 
 
 class Document(tk.Frame):
@@ -125,6 +141,15 @@ class Document(tk.Frame):
 
         with open(self.filename, 'wt', encoding=encoding) as f:
             f.write(self.text.get('1.0', tk.END + '-1c'))
+
+    @property
+    def empty(self):
+        """Whether this document is empty - which means has no content
+        and has not been saved.
+
+        Returns: True if empty, False otherwise.
+        """
+        return not len(self.text.get('1.0', 'end-1c')) and self.filename is None
 
 
 class Index(NamedTuple):

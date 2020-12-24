@@ -27,7 +27,7 @@ class FileMenu(tk.Menu):
         self.add_command(label='Save', underline=0, command=self.save)
         self.add_command(label='Save As...', command=self.save_as)
         self.add_separator()
-        self.add_command(label='Exit', underline=1, command=self.destroy)
+        self.add_command(label='Exit', underline=1, command=self.exit)
 
     def new(self):
         pass
@@ -61,3 +61,6 @@ class FileMenu(tk.Menu):
 
             state['last_open_loc'] = Path(filename).parent
             state.save()
+
+    def exit(self):
+        self.editor.exit()
